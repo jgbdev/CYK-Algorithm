@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -70,13 +71,38 @@ public class Cky {
 
     private void printSet(Set<String>[][] sets, int len){
         int[] colWidth = new int[len];
-        for(int y =0; y<len;y++){
+
+        for(int y = 0; y<len;y++){
             for(int x = 0; x<len ; x++){
-                System.out.print(setToString(sets[x][y]) + " | ");
+                if(colWidth[y]<sets[x][y].size()){
+                    colWidth[y] = sets[x][y].size();
+                }
             }
             System.out.println();
 
         }
+
+        for(int y = len -1 ; y>=0;y-- ){
+            for(int x = 0; x<len; x++){
+                int size = colWidth[x] - sets[x][y].size();
+                int fillerStart = size/2;
+                int fillerEnd = size - fillerStart;
+                System.out.print(" "+filler(fillerStart)+ setToString(sets[x][y]) + filler(fillerEnd) + " "  );
+            }
+            System.out.println();
+
+        }
+
+
+    }
+
+    private String filler(int n){
+        if(n>0) {
+            char[] array = new char[n];
+            Arrays.fill(array,' ');
+            return new String(array);
+        }
+        return "";
     }
 
     private String setToString(Set<String> set){
