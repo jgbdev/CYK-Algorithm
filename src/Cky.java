@@ -1,13 +1,20 @@
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class Cky {
+
+    Set<Rules> rulesSet;
 
     public static void main(String[] args) {
         Cky program = new Cky();
         program.run(args);
+    }
+
+    public Cky(){
+        rulesSet = new HashSet<>();
     }
 
     private void run(String[] args){
@@ -16,8 +23,6 @@ public class Cky {
             System.exit(1);
         }
 
-        Set<Rules> rulesSet = new HashSet<>();
-
         try{
             Reader reader = new Reader();
             reader.read(args[0]);
@@ -25,9 +30,9 @@ public class Cky {
         }catch (IOException e){
             System.err.print(e.getMessage());
         }
+        List<String> strings = stringSplitter(args[1]);
 
-        int len = args[1].length();
-        String input = args[1];
+        int len = strings.size();
 
         Set[][] grid = new HashSet[len][len];
         for(int x=0;x<len;x++){
@@ -36,15 +41,14 @@ public class Cky {
             }
         }
 
-        int j = 0;
-        for(int i = 0; i < len ; i ++ ){
-            char a = input.charAt(i);
-            String string = String.valueOf(a);
-            Set<String> foundStrings = parseString(string,rulesSet);
-            grid[i][0] = foundStrings;
+        int n = 0;
+        for(String str: strings){
+            Set<String> foundStrings = parseString(str);
+            grid[n][0] = foundStrings;
+            n++;
         }
 
-        j = 1;
+        int j = 1;
 
         for( ; j<len;j++){
 
@@ -57,7 +61,7 @@ public class Cky {
                     if( i+x >= len) break;
                     Set<String> joined = joinSet( grid[i][x-1], grid[i+x][j-x]  );
                     for(String seek : joined){
-                        joint.addAll(parseString(seek, rulesSet));
+                        joint.addAll(parseString(seek));
                     }
                     x++;
                 }
@@ -69,9 +73,39 @@ public class Cky {
 
     }
 
+    /*
+    Splits the input string into individual variables
+     */
+    private List<String> stringSplitter(String s){
+        StringBuilder stringBuilder = new StringBuilder();
+        int len = s.length();
+        List<String> output = new ArrayList<>();
+
+        for(int i = 0; i<len; i++){
+            stringBuilder.append(s.charAt(i));
+            if(isValid(stringBuilder.toString())){
+                output.add(stringBuilder.toString());
+                stringBuilder = new StringBuilder();
+            }
+
+        }
+        return output;
+    }
+
+    //Checks if a string is accepted by the grammar
+    private boolean isValid(String s){
+        for(Rules rules: rulesSet){
+            if(rules.getNeighbors().contains(s)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void printSet(Set<String>[][] sets, int len){
         int[] colWidth = new int[len];
 
+        //Gets the maximum column width to align output
         for(int y = 0; y<len;y++){
             for(int x = 0; x<len ; x++){
                 if(colWidth[y]<sets[x][y].size()){
@@ -87,7 +121,7 @@ public class Cky {
                 int size = colWidth[x] - sets[x][y].size();
                 int fillerStart = size/2;
                 int fillerEnd = size - fillerStart;
-                System.out.print(" "+filler(fillerStart)+ setToString(sets[x][y]) + filler(fillerEnd) + " "  );
+                System.out.print(" "+filler(fillerStart)+ setToString(sets[x][y]) + filler(fillerEnd) + " " );
             }
             System.out.println();
 
@@ -96,6 +130,7 @@ public class Cky {
 
     }
 
+    //Return a string of n spaces
     private String filler(int n){
         if(n>0) {
             char[] array = new char[n];
@@ -105,14 +140,16 @@ public class Cky {
         return "";
     }
 
+
     private String setToString(Set<String> set){
         StringBuilder s = new StringBuilder();
-        for(String string : set){
-            s.append(string);
-        }
+        set.forEach( (str)->s.append(str) );
         return s.toString();
     }
 
+    /*
+        Concatenates two sets of strings
+     */
     private Set<String> joinSet(Set<String> set1, Set<String> set2){
 
         Set<String> combination = new HashSet<>();
@@ -120,28 +157,15 @@ public class Cky {
         if(set1.size()==0)return set2;
         if(set2.size()==0)return set1;
 
-        for(String s1 : set1){
-            for(String s2 : set2){
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append(s1);
-                stringBuilder.append(s2);
-                combination.add(stringBuilder.toString());
-            }
-        }
+        set1.forEach(setF -> set2.forEach( setT -> combination.add(setF + setT) ) );
+
         return combination;
     }
 
-    private Set<String> parseString(String string, Set<Rules> rulesSet){
-        Set<String> output = new HashSet<>();
-        for(Rules rules : rulesSet){
-            for(String neighbor : rules.getNeighbors()){
-                if(neighbor.equals(string)){
-                    output.add( rules.getNode());
-                }
-            }
-        }
+    private Set<String> parseString(String string){
 
-        return output;
+        return rulesSet.stream().filter( rule -> rule.getNeighbors().contains(string) ).map(Rules::getNode).collect(Collectors.toSet());
+
     }
 
 
